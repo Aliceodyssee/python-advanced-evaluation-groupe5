@@ -30,7 +30,9 @@ class CodeCell:
         ['print("Hello world!")']
     """
     def __init__(self, id, source, execution_count):
-        pass
+        self.id = id
+        self.source = source
+        self.execution_count = execution_count
 
 class MarkdownCell:
     r"""A Cell of Markdown markup in a Jupyter notebook.
@@ -92,12 +94,13 @@ class Notebook:
     """
 
     def __init__(self, version, cells):
-        pass
+        self.version = version
+        self.cells = cells
     
     def __iter__(self):
         r"""Iterate the cells of the notebook.
         """
-        pass
+        return iter(self.cells)
 
 class NotebookLoader:
     r"""Loads a Jupyter Notebook from a file

@@ -111,8 +111,13 @@ class Notebook:
 
     def __init__(self, ipynb):
         self.version = get_format_version(ipynb)
-        self.cells = get_cells(ipynb)
+        self.cells = []
 
+        for i in get_cells(ipynb):
+            if i['cell_type'] == 'code':
+                self.cells.append(CodeCell(i))
+            elif i['cell_type'] == 'markdown':
+                self.cells.append(MarkdownCell(i))
 
     @staticmethod
     def from_file(filename):
@@ -126,8 +131,7 @@ class Notebook:
         """
         return Notebook(load_ipynb(filename))
          
-# nb = Notebook.from_file("samples/minimal.ipynb")
-# nb.version
+
 
     def __iter__(self):
         r"""Iterate the cells of the notebook.
@@ -143,9 +147,12 @@ class Notebook:
         """
         return iter(self.cells)
 
-# nb = Notebook.from_file("samples/hello-world.ipynb")
-# for cell in nb:
-#     print(cell.id)
+nb = Notebook.from_file("samples/minimal.ipynb")
+nb.version
+
+nb = Notebook.from_file("samples/hello-world.ipynb")
+for cells in nb:
+    print(cells.id)
 
 class PyPercentSerializer:
     r"""Prints a given Notebook in py-percent format.
@@ -169,12 +176,27 @@ class PyPercentSerializer:
             # Goodbye! 👋
     """
     def __init__(self, notebook):
-        pass
+        self.notebook = notebook
 
     def to_py_percent(self):
         r"""Converts the notebook to a string in py-percent format.
         """
-        pass
+        #on reprend globalement le code to_percent en l'adaptant aux classes définies 
+        res=""
+        for cell in self.notebook:
+            if cell.cell_type is MarkdownCell:
+                res+="# %% [markdown] \n"
+                for j in cell.source:
+                    res+=f" {j} \n"
+                res += "\n<BLANKLINE> \n"
+
+            elif cell.cell_type is CodeCell:
+                res+="# %% \n"
+                for j in cell.source:
+                    res+=f"# {j} \n"
+                res += "\n<BLANKLINE> \n"
+
+        return res[:-14] #il faut enlever le dernier <BLANKLINE>
 
     def to_file(self, filename):
         r"""Serializes the notebook to a file
@@ -188,7 +210,11 @@ class PyPercentSerializer:
                 >>> s = PyPercentSerializer(nb)
                 >>> s.to_file("samples/hello-world-serialized-py-percent.py")
         """
-        pass
+        file = open(filename, 'w+')
+        file.write(str(self.to_py_percent()))
+        file.close()
+
+
 class Serializer:
     r"""Serializes a Jupyter Notebook to a file.
 
@@ -223,7 +249,7 @@ class Serializer:
     """
 
     def __init__(self, notebook):
-        pass
+        self.notebook = notebook
 
     def serialize(self):
         r"""Serializes the notebook to a JSON object
@@ -231,7 +257,23 @@ class Serializer:
         Returns:
             dict: a dictionary representing the notebook.
         """
-        pass
+        dict = {}
+
+        dict["cells"]=[]
+        for cell in self.notebook:
+            if isinstance(cell, MarkdownCell):
+                dict["cells"].append({'cell_type': 'markdown' , 'id': cell.id, 'metadata': {}, 'source': cell.source})
+            elif isinstance(cell, CodeCell):
+                dict["cells"].append({'cell_type': 'code' , 'execution_count': cell.execution_count, 'id': cell.id, 'metadata': {}, 'source': cell.source})
+        
+        dict["metadata"] = {}
+
+        dict["nbformat"] = str(self.notebook.version)[0]
+
+        dict["nbformat_minor"] = str(self.notebook.version)[-1]
+
+        return dict
+        
 
     def to_file(self, filename):
         r"""Serializes the notebook to a file
@@ -251,7 +293,9 @@ class Serializer:
                 b777420a
                 a23ab5ac
         """
-        pass
+        file = open(filename, 'w+')
+        file.write(str(self.serialise()))
+        file.close()
 
 class Outliner:
     r"""Quickly outlines the strucure of the notebook in a readable format.
@@ -283,4 +327,30 @@ class Outliner:
         Returns:
             str: a string representing the outline of the notebook.
         """
-        pass
+        nb = Serializer(self.notebook).serialize()
+        res = f"Jupyter Notebook v {self.notebook.version} \n"
+        for cell in nb['cells']:
+            if cell['cell_type'] == 'markdown':
+                res += f"└─▶ Markdown cell #  {cell['id']}   \n"
+                if len(cell['source']) >= 2:
+                    res += f"    ┌   {cell['source'][0]}" 
+                    for line in cell['source'][1:-1]:
+                        res += f"    │  {line}"
+                    res += f"    └   {cell['source'][-1]}  \n"
+                else:
+                    res += f"    │    {cell['source'][0]}   \n"
+            else:
+                res += f"└─▶ Code cell #   {cell['id']}  ({cell['execution_count']}) \n"
+                if len(cell['source']) >= 2:
+                    res += f"    ┌     {cell['source'][0]} "
+                    for line in cell['source'][1:-1]:
+                        res += f"    │     {line}" 
+                    res += f"    └    {cell['source'][-1]} \n"
+                else:
+                    res += f"    │    {cell['source'][0]} \n"
+        return res
+
+nb = Notebook.from_file("samples/hello-world.ipynb")
+o = Outliner(nb)
+print(o.outline())
+

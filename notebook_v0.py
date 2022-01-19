@@ -106,10 +106,10 @@ def get_format_version(ipynb):
         >>> get_format_version(ipynb)
         '4.5'
     """
-    print(f"{ipynb['nbformat']}.{ipynb['nbformat_minor']}")
+    return f"{ipynb['nbformat']}.{ipynb['nbformat_minor']}"
 
 ipynb = load_ipynb("samples/minimal.ipynb")
-get_format_version(ipynb)
+print(get_format_version(ipynb))
 
 
 def get_metadata(ipynb):
