@@ -4,7 +4,7 @@
 """
 an object-oriented version of the notebook toolbox
 """
-
+from notebook_v0 import *
 class CodeCell:
     r"""A Cell of Python code in a Jupyter notebook.
 
@@ -33,7 +33,11 @@ class CodeCell:
     """
 
     def __init__(self, ipynb):
-        pass
+        self.cell_type = ipynb['cell_type']
+        self.execution_count = ipynb['execution_count']
+        self.id = ipynb['id']
+        self.source = ipynb['source']
+
 
 class MarkdownCell:
     r"""A Cell of Markdown markup in a Jupyter notebook.
@@ -63,7 +67,18 @@ class MarkdownCell:
     """
 
     def __init__(self, ipynb):
-        pass
+        self.cell_type = ipynb['cell_type']
+        self.id = ipynb['id']
+        self.source = ipynb['source']
+
+markdown_cell = MarkdownCell({"cell_type": "markdown",
+                                    "id": "a9541506",
+                                    "source": ["Hello world!\n",
+                                                "============\n",
+                                                "Print `Hello world!`:"]
+                            })
+
+
 
 class Notebook:
     r"""A Jupyter Notebook.
@@ -95,7 +110,9 @@ class Notebook:
     """
 
     def __init__(self, ipynb):
-        pass
+        self.version = get_format_version(ipynb)
+        self.cells = get_cells(ipynb)
+
 
     @staticmethod
     def from_file(filename):
@@ -107,7 +124,10 @@ class Notebook:
             >>> nb.version
             '4.5'
         """
-        pass
+        return Notebook(load_ipynb(filename))
+         
+# nb = Notebook.from_file("samples/minimal.ipynb")
+# nb.version
 
     def __iter__(self):
         r"""Iterate the cells of the notebook.
@@ -122,6 +142,10 @@ class Notebook:
             a23ab5ac
         """
         return iter(self.cells)
+
+# nb = Notebook.from_file("samples/hello-world.ipynb")
+# for cell in nb:
+#     print(cell.id)
 
 class PyPercentSerializer:
     r"""Prints a given Notebook in py-percent format.

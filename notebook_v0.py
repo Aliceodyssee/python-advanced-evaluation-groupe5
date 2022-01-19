@@ -9,7 +9,9 @@ starter code for your evaluation assignment
 import base64
 import io
 import json
+from os import read
 import pprint
+from matplotlib import pyplot as plt
 
 # Third-Party Libraries
 import numpy as np
@@ -50,7 +52,16 @@ def load_ipynb(filename):
          'nbformat': 4,
          'nbformat_minor': 5}
     """
-    pass
+    file=open(filename)
+    file_read=file.read()
+    dict=json.loads(file_read)
+    file.close()
+    return dict
+
+print(load_ipynb("samples/minimal.ipynb"))
+print(type(load_ipynb("samples/minimal.ipynb")))
+
+print(load_ipynb("samples/hello-world.ipynb"))
 
 
 def save_ipynb(ipynb, filename):
@@ -73,7 +84,12 @@ def save_ipynb(ipynb, filename):
         True
 
     """
-    pass
+    file=open(filename,"w")
+    file.write(json.dumps(ipynb))
+    file.close()
+
+ipynb=load_ipynb("samples/minimal.ipynb")
+print(save_ipynb(ipynb, "samples/minimal.ipynb"))
 
 
 def get_format_version(ipynb):
@@ -90,7 +106,10 @@ def get_format_version(ipynb):
         >>> get_format_version(ipynb)
         '4.5'
     """
-    pass
+    print(f"{ipynb['nbformat']}.{ipynb['nbformat_minor']}")
+
+ipynb = load_ipynb("samples/minimal.ipynb")
+get_format_version(ipynb)
 
 
 def get_metadata(ipynb):
@@ -114,8 +133,11 @@ def get_metadata(ipynb):
                            'pygments_lexer': 'ipython3',
                            'version': '3.9.7'}}
     """
-    pass
+    return ipynb['metadata']
 
+ipynb = load_ipynb("samples/metadata.ipynb")
+metadata = get_metadata(ipynb)
+pprint.pprint(metadata)
 
 def get_cells(ipynb):
     r"""
@@ -148,7 +170,11 @@ def get_cells(ipynb):
           'metadata': {},
           'source': ['Goodbye! 👋']}]
     """
-    pass
+    return ipynb['cells']
+
+ipynb = load_ipynb("samples/hello-world.ipynb")
+cells = get_cells(ipynb)
+pprint.pprint(cells)
 
 
 def to_percent(ipynb):
@@ -175,7 +201,24 @@ def to_percent(ipynb):
         ...     with open(notebook_file.with_suffix(".py"), "w", encoding="utf-8") as output:
         ...         print(percent_code, file=output)
     """
-    pass
+    res=""
+    for i in ipynb["cells"]:
+        
+        if i["cell_type"]=="markdown":
+            res+="# %% [markdown] \n"
+            for j in i["source"]:
+                res+=f"# {j} \n"
+
+        elif i["cell_type"]=="code":
+            res+="# %% \n"
+            for j in i["source"]:
+                res+=f"# {j} \n"
+
+    return res
+
+
+ipynb = load_ipynb("samples/hello-world.ipynb")
+print(to_percent(ipynb)) # doctest: +NORMALIZE_WHITESPACE
 
 
 def starboard_html(code):
@@ -232,8 +275,39 @@ def to_starboard(ipynb, html=False):
         ...     with open(notebook_file.with_suffix(".html"), "w", encoding="utf-8") as output:
         ...         print(starboard_html, file=output)
     """
-    pass
+    if html:
+        code=""
+        for i in ipynb["cells"]:
+        
+            if i["cell_type"]=="markdown":
+                code+="# %% [markdown] \\n"
+                for j in i["source"]:
+                    code+=f"{j} \\n"
 
+            elif i["cell_type"]=="code":
+                code+="# %% [python] \\n"
+                for j in i["source"]:
+                    code+=f"{j} \\n" 
+        return starboard_html(code)
+    else:
+        res=""
+        for i in ipynb["cells"]:
+        
+            if i["cell_type"]=="markdown":
+                res+="# %% [markdown] \n"
+                for j in i["source"]:
+                    res+=f"{j} \n"
+
+            elif i["cell_type"]=="code":
+                res+="# %% [python] \n"
+                for j in i["source"]:
+                    res+=f"{j} \n"
+
+        return res
+
+
+ipynb = load_ipynb("samples/hello-world.ipynb")
+print(to_starboard(ipynb))
 
 # Outputs
 # ------------------------------------------------------------------------------
@@ -288,7 +362,10 @@ def clear_outputs(ipynb):
          'nbformat': 4,
          'nbformat_minor': 5}
     """
-    pass
+    ipynb["cells"]["execution count"]=None
+    ipynb["cells"]["outputs"]=[]
+
+
 
 
 def get_stream(ipynb, stdout=True, stderr=False):
@@ -306,7 +383,24 @@ def get_stream(ipynb, stdout=True, stderr=False):
         👋 Hello world! 🌍
         🔥 This is fine. 🔥 (https://gunshowcomic.com/648)
     """
-    pass
+
+
+    res=''
+    if stdout:
+        
+        for i in ipynb["cells"]:
+            if i["outputs"]["name"]=='stdout':
+                res+=i["outputs"]["text"][0]
+
+    elif stderr:
+        
+        for i in ipynb["cells"]:
+            if i["outputs"]["name"]=='stderr':
+                res+=i["outputs"]["text"][0]
+    return res
+
+# ipynb = load_ipynb("samples/streams.ipynb")
+# print(get_stream(ipynb))
 
 
 def get_exceptions(ipynb):
@@ -328,7 +422,12 @@ def get_exceptions(ipynb):
         TypeError("unsupported operand type(s) for +: 'int' and 'str'")
         Warning('🌧️  light rain')
     """
-    pass
+    res=""
+    for i in ipynb["cells"]:
+        if i["outputs"]["output_type"]=='error':
+            res+= f"{i['outputs']['ename']}({i['outputs']['evalue']}) \n"
+    return res
+
 
 
 def get_images(ipynb):
@@ -352,4 +451,18 @@ def get_images(ipynb):
                 ...,
                 [ 14,  13,  19]]], dtype=uint8)
     """
-    pass
+    res=[]
+    for i in get_cells(ipynb):
+        if i['outputs']!=[] and isinstance(i['outputs'][0]['data'],dict):
+            for key, item in i['outputs'][0]['data'].items():
+                if 'image' in key:
+                    decode=base64.b64decode(item)
+                    img=PIL.Image.open(io.BytesIO(decode))
+    res.append(np.asarray(img))
+    return res[0]
+
+ipynb = load_ipynb("samples/images.ipynb")
+print(get_images(ipynb)) 
+plt.imshow(get_images(ipynb))
+plt.show()
+
