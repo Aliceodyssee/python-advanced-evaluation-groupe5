@@ -53,8 +53,8 @@ def load_ipynb(filename):
          'nbformat_minor': 5}
     """
     file=open(filename)
-    file_read=file.read()
-    dict=json.loads(file_read)
+    read_file=file.read()
+    dict=json.loads(read_file)
     file.close()
     return dict
 

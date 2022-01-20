@@ -4,6 +4,12 @@
 """
 an object-oriented version of the notebook toolbox
 """
+from notebook_v0 import *
+from notebook_v1 import CodeCell as CC1
+from notebook_v1 import MarkdownCell as MC1
+from notebook_v1 import Outliner
+from notebook_v1 import PyPercentSerializer
+
 
 class CodeCell:
     r"""A Cell of Python code in a Jupyter notebook.
@@ -120,12 +126,21 @@ class NotebookLoader:
             a23ab5ac
     """
     def __init__(self, filename):
-        pass
+        self.filename = filename
 
     def load(self):
         r"""Loads a Notebook instance from the file.
         """
-        pass
+        ipynb = load_ipynb(self.filename)
+        cells = []
+        for cell in ipynb['cells']:
+            # On récupère les id, source et execution_count avec les classes du notebook_v1
+            if cell['cell_type'] == 'markdown':
+                cells.append(MarkdownCell(MC1(cell).id, MC1(cell).source))
+            else:
+                cells.append(CodeCell(CC1(cell).id, CC1(cell).source, CC1(cell).execution_count))
+        
+        return Notebook(get_format_version(ipynb), cells)
 
 class Markdownizer:
     r"""Transforms a notebook to a pure markdown notebook.
@@ -150,7 +165,7 @@ class Markdownizer:
     """
 
     def __init__(self, notebook):
-        pass
+        self.notebook = notebook
 
     def markdownize(self):
         r"""Transforms the notebook to a pure markdown notebook.
@@ -173,7 +188,7 @@ class MarkdownLesser:
                 | print("Hello world!")
     """
     def __init__(self, notebook):
-        pass
+        self.notebook = notebook
 
     def remove_markdown_cells(self):
         r"""Removes markdown cells from the notebook.
@@ -207,7 +222,8 @@ class PyPercentLoader:
     """
 
     def __init__(self, filename, version="4.5"):
-        pass
+        self.filename = filename
+        self.version = version
 
     def load(self):
         r"""Loads a Notebook instance from the py-percent file.
