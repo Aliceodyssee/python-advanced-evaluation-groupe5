@@ -170,7 +170,10 @@ class Markdownizer:
     def markdownize(self):
         r"""Transforms the notebook to a pure markdown notebook.
         """
-        pass
+        for cell in self.notebook.cells:
+            if isinstance(cell, CodeCell):
+                cell = MarkdownCell(cell.id, cell.source)
+        return self.notebook
 
 class MarkdownLesser:
     r"""Removes markdown cells from a notebook.
@@ -196,7 +199,14 @@ class MarkdownLesser:
         Returns:
             Notebook: a Notebook instance with only code cells
         """
-        pass
+        version = self.notebook.version
+
+        for cell in self.notebook.cells:
+            if isinstance(cell, MarkdownCell):
+                self.notebook.cells.remove(cell)
+        cells = self.notebook.cells
+        return Notebook(version, cells)
+
 
 class PyPercentLoader:
     r"""Loads a Jupyter Notebook from a py-percent file.
