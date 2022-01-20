@@ -238,4 +238,4 @@ class PyPercentLoader:
     def load(self):
         r"""Loads a Notebook instance from the py-percent file.
         """
-        pass
+        
